@@ -12,6 +12,11 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+      
+      # Bố thêm bước cài đặt thư viện này vào nhé:
+      - name: Cài đặt thư viện Google API
+        run: |
+          pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib
           
       - name: Chạy script lấy ảnh
         env:
@@ -20,18 +25,12 @@ jobs:
         run: |
           python3 fetch_photos.py
           
-      - name: Kiểm tra file
-        run: ls -la # Lệnh này giúp con kiểm tra xem file đã được tạo ra chưa
-        
       - name: Đẩy file photos.json lên lại
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
-          # Chỉ đẩy lên nếu file thực sự tồn tại
           if [ -f photos.json ]; then
             git add photos.json
             git commit -m "Cập nhật photos.json tự động"
             git push
-          else
-            echo "File photos.json không tồn tại, bỏ qua bước push!"
           fi

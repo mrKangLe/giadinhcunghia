@@ -1,0 +1,102 @@
+name: Tự Động Cập Nhật Album Gia Đình Siêu Khủng
+
+on:
+  schedule:
+    - cron: '0 */2 * * *' # Chạy tự động 2 tiếng/lần
+  workflow_dispatch:
+
+jobs:
+  update-photos:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Cấp quyền cho Robot được ghi đè file
+    steps:
+      - name: Kiểm tra code trên GitHub
+        uses: actions/checkout@v4
+
+      - name: Thiết lập Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Cài đặt thư viện Puppeteer
+        run: |
+          npm install puppeteer
+
+      - name: Robot Puppeteer chạy cuộn trang
+        run: |
+          node -e '
+          const fs = require("fs");
+          const puppeteer = require("puppeteer");
+          
+          // BỐ THAY LINK THẬT VÀO ĐÂY
+          const albums = {
+            "Tất Cả": "LINK_ALBUM_TỔNG",
+            "Mickey": "LINK_ALBUM_MICKEY",
+            "Ken": "LINK_ALBUM_KEN",
+            "Kin": "LINK_ALBUM_KIN",
+            "Mẹ Zún": "LINK_ALBUM_MẸ_ZÚN",
+            "Bố Huy": "LINK_ALBUM_BỐ_HUY",
+            "Cụ Nghĩa": "LINK_ALBUM_CỤ_NGHĨA",
+            "Cụ Tình": "LINK_ALBUM_CỤ_TÌNH",
+            "Chú Hiệu": "LINK_ALBUM_CHÚ_HIỆU"
+          };
+
+          let allData = [];
+
+          async function autoScroll(page){
+            await page.evaluate(async () => {
+              await new Promise((resolve) => {
+                let totalHeight = 0;
+                let distance = 500;
+                let timer = setInterval(() => {
+                  let scrollHeight = document.body.scrollHeight;
+                  window.scrollBy(0, distance);
+                  totalHeight += distance;
+                  if(totalHeight >= scrollHeight){ clearInterval(timer); resolve(); }
+                }, 100);
+              });
+            });
+          }
+
+          async function fetchLargeAlbum(person, url, browser) {
+            if(url.includes("LINK_ALBUM")) return;
+            const page = await browser.newPage();
+            await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+            await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
+            await autoScroll(page);
+            const html = await page.content();
+            const regex = /\["https:\/\/lh3\.googleusercontent\.com\/pw\/[a-zA-Z0-9\-_]*",\d+,\d+\]/g;
+            const matches = html.match(regex) || [];
+            const cleanLinks = [...new Set(matches)].map(m => m.split("\"")[1]);
+            
+            cleanLinks.forEach(imgUrl => {
+              const baseId = imgUrl.split("=")[0];
+              let existing = allData.find(item => item.src.includes(baseId));
+              if (existing) {
+                if (!existing.categories.includes(person)) existing.categories.push(person);
+              } else {
+                allData.push({ src: `${baseId}=w1200`, categories: ["Tất Cả", person] });
+              }
+            });
+            await page.close();
+          }
+
+          async function start() {
+            const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+            for (const [person, url] of Object.entries(albums)) {
+              await fetchLargeAlbum(person, url, browser);
+            }
+            await browser.close();
+            fs.writeFileSync("photos.json", JSON.stringify(allData, null, 2));
+          }
+          start();
+          '
+
+      - name: Đẩy file json mới lên GitHub
+        run: |
+          git config --global user.name "Robot-OKing"
+          git config --global user.email "robot@oking.com"
+          git add photos.json
+          git commit -m "🤖 Robot: Cap nhat anh tu Google"
+          git push

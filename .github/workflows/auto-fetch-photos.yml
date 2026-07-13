@@ -1,30 +1,36 @@
 name: Tự Động Cập Nhật Album Gia Đình
-
-on:
-  workflow_dispatch: # Để Bố bấm tay được
-  schedule:
-    - cron: '0 0 * * *' # Tự chạy 0h sáng hàng ngày
-
+on: [workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # QUAN TRỌNG: Để GitHub có quyền ghi đè file JSON
+      contents: write 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      # Bố thêm bước cài đặt thư viện này vào nhé:
+      - name: Cài đặt thư viện Google API
+        run: |
+          pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib
+          
       - name: Chạy script lấy ảnh
         env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }} # Bố phải lưu Key trong Settings > Secrets
+          G_CLIENT_ID: ${{ secrets.G_CLIENT_ID }}
+          G_CLIENT_SECRET: ${{ secrets.G_CLIENT_SECRET }}
         run: |
-          # Đây là nơi Bố gọi script Python hoặc Node.js để lấy ảnh
-          # Ví dụ: python scripts/fetch_photos.py
-          echo "Đang lấy ảnh từ Google Photos..."
-
-      - name: Cập nhật file JSON
+          python3 fetch_photos.py
+          
+      - name: Đẩy file photos.json lên lại
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add photos.json
-          git commit -m "Auto-update photos.json" || echo "Không có thay đổi"
-          git push
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          if [ -f photos.json ]; then
+            git add photos.json
+            git commit -m "Cập nhật photos.json tự động"
+            git push
+          fi

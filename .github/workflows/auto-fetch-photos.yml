@@ -1,13 +1,14 @@
 name: Auto Fetch Photos
 on:
   schedule:
-    # Chạy 12 lần mỗi ngày (mỗi 2 tiếng 1 lần)
     - cron: '0 */2 * * *'
-  workflow_dispatch: # Giúp Bố bấm nút chạy tay nếu cần
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Cần quyền này để GitHub Action được phép ghi file vào repo
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -18,7 +19,6 @@ jobs:
           python-version: '3.9'
 
       - name: Install dependencies
-        # Con đã thêm google-api-python-client vào đây để không bị lỗi ModuleNotFound nữa ạ
         run: |
           pip install google-auth-oauthlib google-auth-httplib2 google-auth google-api-python-client
 
@@ -29,3 +29,10 @@ jobs:
           G_REFRESH_TOKEN: ${{ secrets.G_REFRESH_TOKEN }}
         run: |
           python fetch_photos.py
+
+      - name: Commit and push if changed
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add photos.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update photos.json via GitHub Action" && git push)

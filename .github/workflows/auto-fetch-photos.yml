@@ -1,36 +1,30 @@
-name: Tự Động Cập Nhật Album Gia Đình
-on: [workflow_dispatch]
+name: Auto Fetch Photos
+on:
+  schedule:
+    # Cấu hình chạy 12 lần/ngày (cứ mỗi 2 tiếng chạy 1 lần)
+    - cron: '0 */2 * * *'
+  workflow_dispatch: # Giúp Bố bấm nút chạy tay bất cứ lúc nào
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write 
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
-      
-      # Bố thêm bước cài đặt thư viện này vào nhé:
-      - name: Cài đặt thư viện Google API
+          python-version: '3.9'
+
+      - name: Install dependencies
         run: |
-          pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib
-          
-      - name: Chạy script lấy ảnh
+          pip install google-auth-oauthlib google-auth-httplib2 google-auth
+
+      - name: Run fetch script
         env:
           G_CLIENT_ID: ${{ secrets.G_CLIENT_ID }}
           G_CLIENT_SECRET: ${{ secrets.G_CLIENT_SECRET }}
+          G_REFRESH_TOKEN: ${{ secrets.G_REFRESH_TOKEN }}
         run: |
-          python3 fetch_photos.py
-          
-      - name: Đẩy file photos.json lên lại
-        run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          if [ -f photos.json ]; then
-            git add photos.json
-            git commit -m "Cập nhật photos.json tự động"
-            git push
-          fi
+          python fetch_photos.py

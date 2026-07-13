@@ -1,9 +1,9 @@
 name: Auto Fetch Photos
 on:
   schedule:
-    # Cấu hình chạy 12 lần/ngày (cứ mỗi 2 tiếng chạy 1 lần)
+    # Chạy 12 lần mỗi ngày (mỗi 2 tiếng 1 lần)
     - cron: '0 */2 * * *'
-  workflow_dispatch: # Giúp Bố bấm nút chạy tay bất cứ lúc nào
+  workflow_dispatch: # Giúp Bố bấm nút chạy tay nếu cần
 
 jobs:
   build:
@@ -18,8 +18,9 @@ jobs:
           python-version: '3.9'
 
       - name: Install dependencies
+        # Con đã thêm google-api-python-client vào đây để không bị lỗi ModuleNotFound nữa ạ
         run: |
-          pip install google-auth-oauthlib google-auth-httplib2 google-auth
+          pip install google-auth-oauthlib google-auth-httplib2 google-auth google-api-python-client
 
       - name: Run fetch script
         env:

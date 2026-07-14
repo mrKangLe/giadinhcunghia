@@ -43,4 +43,4 @@ def fetch_and_save():
     print(f"Đã cập nhật {len(photos_data)} ảnh vào photos.json thành công!")
 
 if __name__ == "__main__":
-    fetch_and_save()
+    fetch_and_save() 
